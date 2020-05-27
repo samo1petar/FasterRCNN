@@ -1,7 +1,6 @@
 import os
 import tensorflow as tf
-from typing import Generator, Tuple
-
+from typing import Generator
 
 # TODO -> rewrite for detection
 
@@ -10,7 +9,6 @@ class RecordReader:
             self,
             record_dir           : str = None,
             record_name          : str = None,
-            image_size           : Tuple[int, int] = (512, 512),
             batch_size           : int = 1,
             shuffle_buffer       : int = 100,
             num_parallel_calls   : int = 8,
@@ -23,15 +21,12 @@ class RecordReader:
 
         self._record_dir           = record_dir
         self._record_name          = record_name
-        self._image_size           = image_size
         self._batch_size           = batch_size
         self._shuffle_buffer       = shuffle_buffer
         self._num_parallel_calls   = num_parallel_calls
         self._num_parallel_reads   = num_parallel_reads
         self._prefatch_buffer_size = prefatch_buffer_size
         self._count                = count
-
-        self.record_path = os.path.exists(os.path.join(self._record_dir, self._record_name + '.tfrecord'))
 
     def read_record(self, name: str) -> Generator[tf.Tensor, None, None]:
 
@@ -41,17 +36,23 @@ class RecordReader:
 
         def parse(x):
             keys_to_features = {
-                'name'     : tf.io.FixedLenFeature([], tf.string),
-                'cls'      : tf.io.FixedLenFeature([], tf.int64),
-                'cls_name' : tf.io.FixedLenFeature([], tf.string),
-                'image'    : tf.io.FixedLenFeature([], tf.string),
+                'index'     : tf.io.FixedLenFeature([], tf.int64),
+                'class_ids' : tf.io.FixedLenSequenceFeature([], tf.int64, allow_missing=True),
+                'bbox_x1'   : tf.io.FixedLenSequenceFeature([], tf.float32, allow_missing=True),
+                'bbox_y1'   : tf.io.FixedLenSequenceFeature([], tf.float32, allow_missing=True),
+                'bbox_x2'   : tf.io.FixedLenSequenceFeature([], tf.float32, allow_missing=True),
+                'bbox_y2'   : tf.io.FixedLenSequenceFeature([], tf.float32, allow_missing=True),
+                'image'     : tf.io.FixedLenFeature([], tf.string),
             }
             parsed_features = tf.io.parse_single_example(x, keys_to_features)
             parsed_features['image'] = tf.image.decode_png(parsed_features['image'], channels=3)
             return (
-                parsed_features['name'],
-                parsed_features['cls'],
-                parsed_features['cls_name'],
+                parsed_features['index'],
+                parsed_features['class_ids'],
+                parsed_features['bbox_x1'],
+                parsed_features['bbox_y1'],
+                parsed_features['bbox_x2'],
+                parsed_features['bbox_y2'],
                 parsed_features['image'],
             )
         if name == 'test':
@@ -67,14 +68,23 @@ class RecordReader:
         dataset = dataset.repeat(count=count)
         dataset = dataset.prefetch(buffer_size=self._prefatch_buffer_size)
 
-        for name, cls, cls_name, image in iter(dataset):
-            image = tf.reshape(image, [-1, *self._image_size, 3])
-            image = tf.cond(tf.random.uniform([], 0, 2, dtype=tf.int32),
-                            true_fn=lambda: tf.image.flip_left_right(image),
-                            false_fn=lambda: image)
+        for index, class_ids, bbox_x1, bbox_y1, bbox_x2, bbox_y2, image in iter(dataset):
 
-            image = tf.image.rot90(image, k=tf.random.uniform([], 0, 2, dtype=tf.int32))
+            B = image[..., 0]
+            G = image[..., 1]
+            R = image[..., 2]
+
+            image = tf.stack((R, G, B), axis=-1)
+
             image = tf.cast(image, dtype=tf.float32)
             image = image / 255
 
-            yield name, tf.one_hot(cls, depth=len(classes_decode)), cls_name, image
+            bboxes = tf.concat(
+                (tf.transpose(bbox_x1), tf.transpose(bbox_y1),
+                 tf.transpose(bbox_x2), tf.transpose(bbox_y2)),
+                axis=1,
+            )
+
+            class_ids = class_ids[0]
+
+            yield index, class_ids, bboxes, image
