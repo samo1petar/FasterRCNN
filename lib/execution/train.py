@@ -1,7 +1,7 @@
 import os
 import tensorflow as tf
 import time
-from lib.loader.RecordReader import RecordReader
+from lib.loader_coco.RecordReader import RecordReader
 from lib.tools.TrainSupport import TrainSupport
 
 
@@ -32,7 +32,7 @@ def train(
     file_writer.set_as_default()
     tensorboard = tf.keras.callbacks.TensorBoard(log_dir=logdir)
 
-    @tf.function
+    # @tf.function
     def train_step(input, labels):
         with tf.GradientTape() as tape:
             prediction = model(input, training=True)

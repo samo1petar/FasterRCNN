@@ -1,12 +1,13 @@
 import os
 import tensorflow as tf
 import numpy as np
-from lib.loader.classes import classes_encode, classes_decode
-from lib.loader.RecordReader import RecordReader
+from lib.loader_coco.RecordReader import RecordReader
 from lib.tools.file import choose_one_from_dir, choose_model, mkdir
 from lib.tools.softmax import softmax
 from lib.tools.plot import save_figure
 
+
+# TODO modify classes_encode and classes_decode
 
 def eval(
         model       : tf.keras.Model,
