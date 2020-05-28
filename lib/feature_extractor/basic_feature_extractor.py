@@ -1,5 +1,5 @@
 import tensorflow as tf
-from lib.layers import Conv, ConvBnAct, FullyConnected, GlobalAvgPool, MaxPool
+from lib.layers import Conv, ConvBnAct, MaxPool
 
 
 class BasicFE(tf.keras.layers.Layer):
@@ -20,13 +20,8 @@ class BasicFE(tf.keras.layers.Layer):
         self.c6 = ConvBnAct(32 * M, 3, name='conv_6')
         self.p3 = MaxPool(name='pool_3')
         self.c7 = ConvBnAct(64, 3, name='conv_7')
-        self.c8 = ConvBnAct(64, 3, name='conv_8')
+        self.c8 = Conv(64, 3, name='conv_8')
 
-        self.global_pool = GlobalAvgPool(name='global_pool')
-
-        self.fc_1 = FullyConnected(units=32)
-        self.fc_2 = FullyConnected(units=16)
-        self.fc_3 = FullyConnected(units=5)
 
     def call(self, inputs: tf.Tensor, training: bool = False):
 
@@ -43,10 +38,5 @@ class BasicFE(tf.keras.layers.Layer):
         x = self.p3(x)
         x = self.c7(x, training=training)
         x = self.c8(x, training=training)
-        x = self.global_pool(x)
-
-        x = self.fc_1(x, training=training)
-        x = self.fc_2(x, training=training)
-        x = self.fc_3(x, training=training)
 
         return x
