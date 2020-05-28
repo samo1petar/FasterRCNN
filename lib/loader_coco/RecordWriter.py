@@ -30,9 +30,9 @@ class RecordWriter:
             test_dataset = data.COCODetection(root=data_path, splits=['instances_val2017'])
             self.create_record(test_dataset, self._test_record, save_n_test_images)
 
-        # if not os.path.exists(self._train_record):
-        #     train_dataset = data.COCODetection(root=data_path, splits=['instances_train2017'])
-        #     self.create_record(train_images, self._train_record, save_n_train_images)
+        if not os.path.exists(self._train_record):
+            train_dataset = data.COCODetection(root=data_path, splits=['instances_train2017'])
+            self.create_record(train_dataset, self._train_record, save_n_train_images)
 
     def get_next(self, dataset: data.mscoco.detection.COCODetection, max) -> Generator[List[Union[str, str, bytes]], None, None]:
         for i, (image, label) in enumerate(dataset):
