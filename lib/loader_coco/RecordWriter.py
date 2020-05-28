@@ -1,6 +1,5 @@
 import cv2
 from gluoncv import data
-from IPython import embed
 import numpy as np
 import os
 import tensorflow as tf
@@ -8,8 +7,6 @@ from typing import Generator, List, Union
 
 from lib.tools.progress_bar import printProgressBar
 
-
-# TODO -> rewrite for detection
 
 class RecordWriter:
     def __init__(

@@ -2,7 +2,6 @@ import os
 import tensorflow as tf
 from typing import Generator
 
-# TODO -> rewrite for detection
 
 class RecordReader:
     def __init__(
