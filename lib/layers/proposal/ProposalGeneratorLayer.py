@@ -32,7 +32,7 @@ class ProposalGeneratorLayer(tf.keras.layers.Layer):
         centers = tf.concat((centers, centers), axis=-1)
         centers = tf.tile(centers, [1, 1, anchors.shape[0]])
         centers = tf.reshape(centers, [centers.shape[0], centers.shape[1], anchors.shape[0], 4])
-        anchor_offsets = tf.concat((anchors/2, -anchors/2), axis=1)
+        anchor_offsets = tf.concat((-anchors/2, anchors/2), axis=1)
 
         proposals = centers + anchor_offsets
 
