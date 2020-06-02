@@ -81,9 +81,9 @@ def iou_tf(out_bboxes: tf.Tensor, gt_bboxes: tf.Tensor) -> tf.Tensor:
                                         ])
     gt_bboxes_tiled = tf.tile(gt_bboxes, [1, out_bboxes_tiled_sh.shape[4]])
     gt_bboxes_tiled_sh = tf.reshape(gt_bboxes_tiled,
-                                  [gt_bboxes_tiled.shape[0],
+                                  [gt_bboxes.shape[0],
                                    out_bboxes_tiled_sh.shape[4],
-                                   gt_bboxes_tiled.shape[1],
+                                   gt_bboxes.shape[1],
                                    ])
 
     first_points_mask  = out_bboxes_tiled_sh[:, :, :, :, :, :2] >= gt_bboxes_tiled_sh[:, :, :2]
