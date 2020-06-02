@@ -1,12 +1,12 @@
 import tensorflow as tf
 
 
-class ProposalLayer(tf.keras.layers.Layer):
+class ProposalGeneratorLayer(tf.keras.layers.Layer):
     def __init__(
             self,
             name : str = 'proposal_layer',
     ):
-        super(ProposalLayer, self).__init__(name=name)
+        super(ProposalGeneratorLayer, self).__init__(name=name)
 
 
     def call(
@@ -15,6 +15,8 @@ class ProposalLayer(tf.keras.layers.Layer):
             input_shape : tf.Tensor,
             anchors     : tf.Tensor,
     ):
+        anchors = tf.constant(anchors, dtype=tf.float32)
+
         _, h, w, _= predictions.shape
 
         h_ratio = input_shape[1] / predictions.shape[1]
@@ -35,8 +37,9 @@ class ProposalLayer(tf.keras.layers.Layer):
         proposals = centers + anchor_offsets
 
         # TODO correct proposals
+        # TODO clip negative and out-of-image proposals
 
-        return proposals
+        return proposals[tf.newaxis, ...], predictions[..., :-4]
 
 
 if __name__ == '__main__':
@@ -45,7 +48,7 @@ if __name__ == '__main__':
 
     predictions = tf.constant(np.zeros((1, 3, 4, 86)), dtype=tf.float32)
     input_shape = tf.constant([1, 100, 100, 3], dtype=tf.float32)
-    anchors = tf.constant([[2, 2], [5, 5], [7, 7], [10, 10]], dtype=tf.float32)
+    anchors = [[2, 2], [5, 5], [7, 7], [10, 10]]
 
-    proposal_layer = ProposalLayer()
-    proposal_layer(predictions, input_shape, anchors)
+    generate_proposal_layer = ProposalGeneratorLayer()
+    generate_proposal_layer(predictions, input_shape, anchors)
