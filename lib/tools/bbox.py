@@ -2,7 +2,12 @@ import numpy as np
 import tensorflow as tf
 
 
-def iou_np(bbox: np.ndarray, bboxes: np.ndarray) -> np.ndarray:
+def iou_np_single(bbox: np.ndarray, bboxes: np.ndarray) -> np.ndarray:
+    '''
+    :param bbox: [4]
+    :param bboxes: [N, 4]
+    :return:
+    '''
 
     bbox = np.tile(bbox, bboxes.shape[0]).reshape(bboxes.shape[0], 4)
 
@@ -29,8 +34,12 @@ def iou_np(bbox: np.ndarray, bboxes: np.ndarray) -> np.ndarray:
     return iou
 
 
-def iou_tf(bbox: tf.Tensor, bboxes: tf.Tensor) -> tf.Tensor:
-
+def iou_tf_single(bbox: tf.Tensor, bboxes: tf.Tensor) -> tf.Tensor:
+    '''
+    :param bbox: [4]
+    :param bboxes: [N, 4]
+    :return:
+    '''
 
     bbox = tf.reshape(tf.tile(bbox, [bboxes.shape[0]]), (bboxes.shape[0], 4))
 
@@ -53,21 +62,79 @@ def iou_tf(bbox: tf.Tensor, bboxes: tf.Tensor) -> tf.Tensor:
     return iou
 
 
-if __name__ == '__main__':
-    bbox = np.array([10, 10, 20, 20])
+def iou_tf(out_bboxes: tf.Tensor, gt_bboxes: tf.Tensor) -> tf.Tensor:
 
-    bboxes = np.array([
+    '''
+    :param out_bboxes: [batch, height, width, anchors, points]
+    :param gt_bboxes: [N, points]
+    :return:
+    '''
+
+    out_bboxes_tiled = tf.tile(out_bboxes, [1, 1, 1, gt_bboxes.shape[0], 1])
+    out_bboxes_tiled_sh = tf.reshape(out_bboxes_tiled,
+                                       [out_bboxes_tiled.shape[0],
+                                        out_bboxes_tiled.shape[1],
+                                        out_bboxes_tiled.shape[2],
+                                        gt_bboxes.shape[0],
+                                        out_bboxes.shape[3],
+                                        out_bboxes_tiled.shape[4],
+                                        ])
+    gt_bboxes_tiled = tf.tile(gt_bboxes, [1, out_bboxes_tiled_sh.shape[4]])
+    gt_bboxes_tiled_sh = tf.reshape(gt_bboxes_tiled,
+                                  [gt_bboxes_tiled.shape[0],
+                                   out_bboxes_tiled_sh.shape[4],
+                                   gt_bboxes_tiled.shape[1],
+                                   ])
+
+    first_points_mask  = out_bboxes_tiled_sh[:, :, :, :, :, :2] >= gt_bboxes_tiled_sh[:, :, :2]
+    second_points_mask = out_bboxes_tiled_sh[:, :, :, :, :, 2:] <= gt_bboxes_tiled_sh[:, :, 2:]
+
+    mask = tf.concat((first_points_mask, second_points_mask), axis=-1)
+
+    mid_bboxes = out_bboxes_tiled_sh * tf.cast(mask, out_bboxes_tiled_sh.dtype) + \
+                 gt_bboxes_tiled_sh * tf.cast(tf.logical_not(mask), gt_bboxes_tiled_sh.dtype)
+
+    no_intersection_mask = tf.logical_or(mid_bboxes[..., 0] > mid_bboxes[..., 2], mid_bboxes[..., 1] > mid_bboxes[..., 3])
+
+    mid_bboxes_area = (mid_bboxes[..., 2] - mid_bboxes[..., 0]) * (mid_bboxes[..., 3] - mid_bboxes[..., 1])
+    out_bboxes_area = (out_bboxes_tiled_sh[..., 2] - out_bboxes_tiled_sh[..., 0]) * (out_bboxes_tiled_sh[..., 3] - out_bboxes_tiled_sh[..., 1])
+    gt_bboxes_area = (gt_bboxes_tiled_sh[..., 2] - gt_bboxes_tiled_sh[..., 0]) * (gt_bboxes_tiled_sh[..., 3] - gt_bboxes_tiled_sh[..., 1])
+
+    iou = mid_bboxes_area / (out_bboxes_area + gt_bboxes_area - mid_bboxes_area)
+    iou = iou * tf.cast(tf.logical_not(no_intersection_mask), iou.dtype)
+
+    return iou
+
+
+if __name__ == '__main__':
+    gt_bbox = np.array([
+        [10, 10, 20, 20],
+        [25, 25, 30, 30],
+    ])
+
+    out_bbox = np.array([
         [5, 15, 15, 25],
-        [12, 5, 18, 25],
+        # [12, 5, 18, 25],
         [5, 5, 12, 12],
-        [8, 8, 15, 15],
+        # [8, 8, 15, 15],
         [10, 10, 20, 20],
         [16, 16, 30, 30],
         [100, 100, 200, 200],
         [0, 0, 2, 2],
     ])
 
-    print (iou_np(bbox, bboxes))
+    print (iou_np_single_single(gt_bbox[0], out_bbox))
+    print (iou_np_single_single(gt_bbox[1], out_bbox))
+
+    out_bbox = tf.reshape(tf.convert_to_tensor(out_bbox, dtype=tf.float32), [1, 2, 3, 1, 4])
+    gt_bbox = tf.convert_to_tensor(gt_bbox, dtype=tf.float32)
+    print (iou_tf(out_bbox, gt_bbox))
+
+    # print (iou_np_single(gt_bbox, out_bbox))
+
+    # out_bbox = tf.reshape(tf.convert_to_tensor(out_bbox, dtype=tf.float32), [-1, 4])
+    # gt_bbox  = tf.reshape(tf.convert_to_tensor(gt_bbox, dtype=tf.float32), [4])
+    # print (iou_tf(gt_bbox, out_bbox))
     exit()
 
     error_n = 1
@@ -78,8 +145,8 @@ if __name__ == '__main__':
         bbox = np.concatenate((np.random.uniform(0, 50, 2), np.random.uniform(50, 100, 2)))
         bboxes = np.concatenate((np.random.uniform(0, 70, 2 * 1000).reshape(-1, 2), np.random.uniform(50, 100, 2 * 1000).reshape(-1, 2)), axis=1)
 
-        np_output = iou_np(bbox, bboxes)
-        tf_output = iou_tf(tf.constant(bbox), tf.constant(bboxes)).numpy()
+        np_output = iou_np_single(bbox, bboxes)
+        tf_output = iou_tf_single(tf.constant(bbox), tf.constant(bboxes)).numpy()
 
         if np.sum(np.abs(np_output - tf_output)) > 0.00001:
             print ('error {}\nbbox:\n{}\nbboxes: \n{}'.format(error_n, bbox, bboxes))
@@ -95,7 +162,7 @@ if __name__ == '__main__':
     # for x in lista:
     #     bboxes_test = np.tile(bboxes, x).reshape(-1, 4)
     #     start = time.time()
-    #     iou_np(bbox, bboxes_test)
+    #     iou_np_single(bbox, bboxes_test)
     #     end = time.time()
     #     print ('{} time for x = {} shape'.format(end - start, bboxes_test.shape))
     #     times.append(end-start)
