@@ -1,5 +1,6 @@
 from lib.architecture.SSDModel import SSDModel
 from lib.feature_extractor.basic_feature_extractor import BasicFE
+from lib.layers import ProposalTargetLayer
 from lib.loader_coco.RecordReader import RecordReader
 from lib.loader_coco.RecordWriter import RecordWriter
 from lib.loss.softmax_cross_entropy import SoftmaxCrossEntropy
@@ -42,13 +43,15 @@ class Definition:
     )
 
     feature_extractor = BasicFE(name='basic_feature_extractor')
-    anchors = [[100, 100]]
+    anchors = [[300, 220]]
 
     model = SSDModel(
         name='Model',
         feature_extractor=feature_extractor,
         anchors=anchors,
     )
+
+    proposal_target_layer = ProposalTargetLayer()
 
     loss = SoftmaxCrossEntropy()
 

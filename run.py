@@ -23,16 +23,17 @@ def run():
 
     if args.mode == 'train':
         train(
-            model            = Definition.model,
-            loader           = Definition.reader,
-            loss_object      = Definition.loss,
-            optimizer        = Definition.optimizer,
-            print_every_iter = params['print_every_iter'],
-            eval_every_iter  = params['eval_every_iter'],
-            max_iter         = params['max_iter'],
-            clip_gradients   = params['clip_gradients'],
-            results_dir      = params['results_dir'],
-            name             = params['name'],
+            model                 = Definition.model,
+            loader                = Definition.reader,
+            loss_object           = Definition.loss,
+            optimizer             = Definition.optimizer,
+            proposal_target_layer = Definition.proposal_target_layer,
+            print_every_iter      = params['print_every_iter'],
+            eval_every_iter       = params['eval_every_iter'],
+            max_iter              = params['max_iter'],
+            clip_gradients        = params['clip_gradients'],
+            results_dir           = params['results_dir'],
+            name                  = params['name'],
         )
     elif args.mode in ['test', 'eval']:
         eval(

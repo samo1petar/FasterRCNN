@@ -6,16 +6,17 @@ from lib.tools.TrainSupport import TrainSupport
 
 
 def train(
-        model            : tf.keras.Model,
-        loader           : RecordReader,
-        loss_object      : tf.keras.losses.Loss,
-        optimizer        : tf.keras.optimizers.Optimizer,
-        print_every_iter : int,
-        eval_every_iter  : int,
-        max_iter         : int,
-        results_dir      : str,
-        name             : str,
-        clip_gradients   : float,
+        model                 : tf.keras.Model,
+        loader                : RecordReader,
+        loss_object           : tf.keras.losses.Loss,
+        optimizer             : tf.keras.optimizers.Optimizer,
+        proposal_target_layer : tf.keras.layers.Layer,
+        print_every_iter      : int,
+        eval_every_iter       : int,
+        max_iter              : int,
+        results_dir           : str,
+        name                  : str,
+        clip_gradients        : float,
 ) -> None:
 
     train_support = TrainSupport(save_dir=results_dir, name=name)
@@ -33,9 +34,11 @@ def train(
     tensorboard = tf.keras.callbacks.TensorBoard(log_dir=logdir)
 
     # @tf.function
-    def train_step(input, labels):
+    def train_step(image, class_ids, bboxes):
         with tf.GradientTape() as tape:
-            prediction = model(input, training=True)
+            proposals, cls_prob = model(image, training=True)
+            target_proposals, target_cls_index, target_cls_probs = proposal_target_layer(proposals, cls_prob,
+                                                                                         bboxes, class_ids)
             loss = loss_object(labels, prediction)
 
         gradients = tape.gradient(loss, model.trainable_variables)
@@ -56,31 +59,31 @@ def train(
         iter += 1
 
         # #######################  EVAL  #######################
-        if iter % eval_every_iter == 0:
-            tf.summary.scalar('train_loss', train_loss.result(), iter)
-            train_loss.reset_states()
-
-            model.save_weights(os.path.join(train_support.model_saving_dir, 'model_' + str(iter.numpy())), save_format='tf')
-
-            train_support.sample_from(model, iterator_train, train_support.sample_train_dir)
-            train_support.sample_from(model, loader.read_record('test'), train_support.sample_test_dir)
-
-            for name, cls, cls_name, image in loader.read_record('test'):
-                prediction = model(image, training=False)
-                loss = loss_object(cls, prediction)
-                test_loss(loss)
-            tf.summary.scalar('test_loss', test_loss.result(), iter)
-            test_loss.reset_states()
+        # if iter % eval_every_iter == 0:
+        #     tf.summary.scalar('train_loss', train_loss.result(), iter)
+        #     train_loss.reset_states()
+        #
+        #     model.save_weights(os.path.join(train_support.model_saving_dir, 'model_' + str(iter.numpy())), save_format='tf')
+        #
+        #     train_support.sample_from(model, iterator_train, train_support.sample_train_dir)
+        #     train_support.sample_from(model, loader.read_record('test'), train_support.sample_test_dir)
+        #
+        #     for name, cls, cls_name, image in loader.read_record('test'):
+        #         prediction = model(image, training=False)
+        #         loss = loss_object(cls, prediction)
+        #         test_loss(loss)
+        #     tf.summary.scalar('test_loss', test_loss.result(), iter)
+        #     test_loss.reset_states()
 
         ########################  ITER  ########################
-        if iter % print_every_iter == 0:
-            print('Iter: {} \tLoss: {} \tTime: {}'.format(iter, train_print_loss.result(), time_measurement.result()))
-            train_print_loss.reset_states()
-            time_measurement.reset_states()
+        # if iter % print_every_iter == 0:
+        #     print('Iter: {} \tLoss: {} \tTime: {}'.format(iter, train_print_loss.result(), time_measurement.result()))
+        #     train_print_loss.reset_states()
+        #     time_measurement.reset_states()
 
         ######################  TRAIN STEP ######################
-        name, cls, cls_name, image = iterator_train.__next__()
+        index, class_ids, bboxes, image = iterator_train.__next__()
         start = time.time()
-        train_step(image, cls)
+        train_step(image, class_ids, bboxes)
         end = time.time()
         time_measurement(end - start)
