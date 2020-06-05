@@ -1,5 +1,5 @@
 import tensorflow as tf
-from lib.tools.bbox import iou_tf_multibox
+from lib.tools.bbox import iou_tf
 
 
 class ProposalTargetLayer(tf.keras.layers.Layer):
@@ -20,7 +20,18 @@ class ProposalTargetLayer(tf.keras.layers.Layer):
             gt_cls       : tf.Tensor,
     ) -> tf.Tensor:
 
-        print ('Proposal Target Layer')
+        iou = iou_tf(proposals, gt_proposals)
+
+        a = tf.math.top_k(tf.reshape(iou, [-1]), k=10) # TODO parametrize k
+
+        i = tf.tensor_scatter_nd_update(
+            tensor=tf.reshape(tf.zeros_like(iou), [-1]),
+            indices=tf.reshape(a[1], [-1, 1]),
+            updates=tf.ones_like(a[1], dtype=tf.float32),
+        )
+        i = tf.cast(tf.reshape(i, iou.shape), dtype=tf.bool)
+
+        print('Proposal Target Layer')
         from IPython import embed
         embed()
         exit()

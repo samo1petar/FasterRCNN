@@ -5,7 +5,9 @@ from lib.layers.FullyConnected import FullyConnected
 from lib.layers.GlobalAvgPool import GlobalAvgPool
 from lib.layers.GlobalMaxPool import GlobalMaxPool
 from lib.layers.MaxPool import MaxPool
-from lib.layers.ProposalLayer import ProposalLayer
+from lib.layers.proposal.ProposalGeneratorLayer import ProposalGeneratorLayer
+from lib.layers.proposal.ProposalSelectorLayer import ProposalSelectorLayer
+from lib.layers.proposal.ProposalTargetLayer import ProposalTargetLayer
 
 __all__ = [
     'Activation',
@@ -15,5 +17,7 @@ __all__ = [
     'GlobalAvgPool',
     'GlobalMaxPool',
     'MaxPool',
-    'ProposalLayer',
+    'ProposalGeneratorLayer',
+    'ProposalSelectorLayer',
+    'ProposalTargetLayer',
 ]
