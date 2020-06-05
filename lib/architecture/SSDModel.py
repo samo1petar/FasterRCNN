@@ -1,5 +1,5 @@
 import tensorflow as tf
-from lib.layers import Conv, ProposalLayer
+from lib.layers import Conv, ProposalGeneratorLayer, ProposalSelectorLayer
 from lib.loader_coco.classes import classes
 from typing import List
 
@@ -9,14 +9,15 @@ class SSDModel(tf.keras.Model):
             self,
             name              : str,
             feature_extractor : tf.keras.layers.Layer,
-            anchors           : tf.Tensor,
+            anchors           : List[List[int]],
     ):
         super(SSDModel, self).__init__(name=name)
 
         self.feature_extractor = feature_extractor
         self.anchors = anchors
         self.bbox_conv = Conv(len(classes) + 4, 3, name='bbox_conv')
-        self.proposal_payer = ProposalLayer()
+        self.proposal_generator_layer = ProposalGeneratorLayer()
+        self.proposal_selector_layer = ProposalSelectorLayer()
 
     def call(self, inputs: tf.Tensor, training: bool = False):
 
@@ -24,6 +25,10 @@ class SSDModel(tf.keras.Model):
 
         features = self.bbox_conv(x)
 
-        proposals = self.proposal_payer(features, inputs.shape, self.anchors)
+        proposals, cls_prob = self.proposal_generator_layer(features, inputs.shape, self.anchors)
 
-        return features, proposals
+        if training:
+            return proposals, cls_prob
+        else:
+            proposals, cls_index, cls_prob = self.proposal_selector_layer(proposals, cls_prob)
+            return proposals, cls_index, cls_prob
