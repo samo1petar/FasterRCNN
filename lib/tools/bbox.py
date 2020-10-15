@@ -123,8 +123,8 @@ if __name__ == '__main__':
         [0, 0, 2, 2],
     ])
 
-    print (iou_np_single_single(gt_bbox[0], out_bbox))
-    print (iou_np_single_single(gt_bbox[1], out_bbox))
+    print (iou_np_single(gt_bbox[0], out_bbox))
+    print (iou_np_single(gt_bbox[1], out_bbox))
 
     out_bbox = tf.reshape(tf.convert_to_tensor(out_bbox, dtype=tf.float32), [1, 2, 3, 1, 4])
     gt_bbox = tf.convert_to_tensor(gt_bbox, dtype=tf.float32)
