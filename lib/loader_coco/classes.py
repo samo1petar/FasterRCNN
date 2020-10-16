@@ -78,5 +78,6 @@ classes = {
     "76": "scissors",
     "77": "teddy bear",
     "78": "hair drier",
-    "79": "toothbrush"
+    "79": "toothbrush",
+    "80": "junk",
 }

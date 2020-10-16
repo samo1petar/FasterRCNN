@@ -36,15 +36,29 @@ def train(
     # @tf.function
     def train_step(image, class_ids, bboxes):
         with tf.GradientTape() as tape:
-            proposals, cls_prob = model(image, training=True)
-            target_proposals, target_cls_index, target_cls_probs = proposal_target_layer(proposals, cls_prob,
-                                                                                         bboxes, class_ids)
-            loss = loss_object(labels, prediction)
+            proposals, cls_prob, anchor_prob = model(image, training=True)
+            proposals_index, positive_proposals, positive_cls_prob, positive_gt_proposals, positive_gt_cls, \
+            positive_gt_anchor, positive_anchor_cls, negative_index, negative_cls_prob, negative_gt_cls \
+                = proposal_target_layer(proposals, cls_prob, anchor_prob, bboxes, class_ids)
+
+            positive_anchor_loss = loss_object(positive_anchor_cls, positive_gt_anchor)
+
+            positive_cls_loss = loss_object(positive_cls_prob, positive_gt_cls)
+
+            negative_cls_loss = loss_object(negative_cls_prob, negative_gt_cls)
+
+            loss = tf.add(tf.add(positive_anchor_loss, positive_cls_loss), negative_cls_loss)
+
+        from IPython import embed
+        embed()
+        # print ('Anchor Loss %f\tPositive Cls Loss %f\tNegative Cls Loss %f'.format(
+        #     positive_anchor_loss, positive_cls_loss, negative_cls_loss))
 
         gradients = tape.gradient(loss, model.trainable_variables)
-        clipped_gradients = []
-        for grad in gradients:
-            clipped_gradients.append(tf.clip_by_value(grad, -clip_gradients, clip_gradients))
+
+        # clipped_gradients = []
+        # for grad in gradients:
+        #     clipped_gradients.append(tf.clip_by_value(grad, -clip_gradients, clip_gradients))
 
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
         train_print_loss(loss)

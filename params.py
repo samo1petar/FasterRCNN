@@ -24,7 +24,7 @@ params = {
 class Definition:
 
     writer = RecordWriter(
-        data_path='/media/david/A/Dataset/COCO',
+        data_path='/media/david/A/Datasets/COCO',
         record_dir='records',
         record_name='one_image',
         save_n_test_images=1,
@@ -43,7 +43,7 @@ class Definition:
     )
 
     feature_extractor = BasicFE(name='basic_feature_extractor')
-    anchors = [[300, 220]]
+    anchors = [[300, 220], [150, 120], [100, 80]]
 
     model = SSDModel(
         name='Model',

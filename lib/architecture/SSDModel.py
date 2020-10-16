@@ -15,7 +15,8 @@ class SSDModel(tf.keras.Model):
 
         self.feature_extractor = feature_extractor
         self.anchors = anchors
-        self.bbox_conv = Conv(len(classes) + 4, 3, name='bbox_conv')
+        self.anchor_cls = Conv(len(anchors), 3, name='anchor_prob_conv')
+        self.bbox_conv = Conv(len(classes) + 4, 3, name='bbox_conv') # TODO separate Conv for cls and bbox
         self.proposal_generator_layer = ProposalGeneratorLayer()
         self.proposal_selector_layer = ProposalSelectorLayer()
 
@@ -25,10 +26,12 @@ class SSDModel(tf.keras.Model):
 
         features = self.bbox_conv(x)
 
+        anchor_cls = self.anchor_cls(x)
+
         proposals, cls_prob = self.proposal_generator_layer(features, inputs.shape, self.anchors)
 
         if training:
-            return proposals, cls_prob
+            return proposals, cls_prob, anchor_cls
         else:
-            proposals, cls_index, cls_prob = self.proposal_selector_layer(proposals, cls_prob)
+            proposals, cls_index, cls_prob = self.proposal_selector_layer(proposals, cls_prob) # TODO check Proposal Selector Layer
             return proposals, cls_index, cls_prob

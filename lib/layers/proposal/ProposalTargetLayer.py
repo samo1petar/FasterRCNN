@@ -12,7 +12,7 @@ class ProposalTargetLayer(tf.keras.layers.Layer):
     ):
         super(ProposalTargetLayer, self).__init__(name=name)
 
-        self.iou_threshold = cls_threshold
+        self.iou_threshold = iou_threshold
         self.top_k = top_k
         self.take_positive_N = take_positive_N
 
@@ -56,7 +56,7 @@ class ProposalTargetLayer(tf.keras.layers.Layer):
 
         positive_gt_cls = tf.gather(gt_cls, proposals_index[:, 3])
 
-        positive_anchor = proposals_index[:, -1]
+        positive_gt_anchor = proposals_index[:, -1]
 
         positive_anchor_cls = tf.gather_nd(anchor_prob, proposals_index[:, :3])
 
@@ -66,9 +66,11 @@ class ProposalTargetLayer(tf.keras.layers.Layer):
 
         negative_index = tf.where(iou_per_position < self.iou_threshold)
 
-        negative_index = tf.random.shuffle(negative_index)[:positive_data.shape[0]]
+        negative_index = tf.random.shuffle(negative_index)[:proposals_index.shape[0]]
 
         negative_cls_prob = tf.gather_nd(cls_prob, negative_index)
 
+        negative_gt_cls = tf.ones((negative_cls_prob.shape[0], 1), dtype=tf.float32) * 80 # 80 is junk class
+
         return proposals_index, positive_proposals, positive_cls_prob, positive_gt_proposals, positive_gt_cls,\
-               positive_anchor, positive_anchor_cls, negative_index, negative_cls_prob
+               positive_gt_anchor, positive_anchor_cls, negative_index, negative_cls_prob, negative_gt_cls
