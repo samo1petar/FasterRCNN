@@ -8,4 +8,4 @@ Cython==0.29.21
 numpy==1.22.0
 pycocotools==2.0.0
 gluoncv==0.8.0
-ipython==7.16.3
+ipython==8.10.0
