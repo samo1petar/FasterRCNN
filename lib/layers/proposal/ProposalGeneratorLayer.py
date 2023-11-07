@@ -4,9 +4,11 @@ import tensorflow as tf
 class ProposalGeneratorLayer(tf.keras.layers.Layer):
     def __init__(
             self,
-            name : str = 'proposal_layer',
+            clip : bool = True,
+            name : str  = 'proposal_layer',
     ):
         super(ProposalGeneratorLayer, self).__init__(name=name)
+        self.clip = clip
 
 
     def call(
@@ -36,8 +38,11 @@ class ProposalGeneratorLayer(tf.keras.layers.Layer):
 
         proposals = centers + anchor_offsets
 
-        # TODO correct proposals
-        # TODO clip negative and out-of-image proposals
+        if self.clip:
+            proposals = tf.clip_by_value(proposals, clip_value_min=0, clip_value_max=tf.tile(input_shape[1:3], [2]))
+
+        # Question: Should predictions be cut :-4?
+        # Question: Should proposals be corrected here?
 
         return proposals[tf.newaxis, ...], predictions[..., :-4]
 
@@ -46,9 +51,12 @@ if __name__ == '__main__':
 
     import numpy as np
 
-    predictions = tf.constant(np.zeros((1, 3, 4, 86)), dtype=tf.float32)
-    input_shape = tf.constant([1, 100, 100, 3], dtype=tf.float32)
-    anchors = [[2, 2], [5, 5], [7, 7], [10, 10]]
+    predictions = tf.constant(np.ones((1, 3, 3, 4)), dtype=tf.float32)
+    input_shape = tf.constant([1, 60, 100, 3], dtype=tf.float32)
+    anchors = [[100, 100], [20, 20]] #, [7, 7], [10, 10]]
 
     generate_proposal_layer = ProposalGeneratorLayer()
-    generate_proposal_layer(predictions, input_shape, anchors)
+    proposals, cls_prob = generate_proposal_layer(predictions, input_shape, anchors)
+
+    # from IPython import embed
+    # embed()
