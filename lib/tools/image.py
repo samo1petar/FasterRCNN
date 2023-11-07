@@ -3,6 +3,12 @@ import imutils
 import numpy as np
 
 
+def show(image: np.ndarray) -> None:
+    cv2.imshow('', image)
+    cv2.waitKey()
+    cv2.destroyAllWindows()
+
+
 def save_image(image: np.ndarray, path: str) -> None:
     cv2.imwrite(path, image)
 
