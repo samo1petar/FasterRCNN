@@ -38,16 +38,16 @@ class ProposalGeneratorLayer(tf.keras.layers.Layer):
 
     def call(
             self,
-            predictions : tf.Tensor,
+            bbox_deltas : tf.Tensor,
             input_shape : tf.Tensor,
             anchors     : tf.Tensor,
     ):
         anchors = tf.constant(anchors, dtype=tf.float32)
 
-        _, h, w, _= predictions.shape
+        _, h, w, _= bbox_deltas.shape
 
-        h_ratio = input_shape[1] / predictions.shape[1]
-        w_ratio = input_shape[2] / predictions.shape[2]
+        h_ratio = input_shape[1] / bbox_deltas.shape[1]
+        w_ratio = input_shape[2] / bbox_deltas.shape[2]
 
         h_centers = tf.linspace(h_ratio / 2, input_shape[1] - h_ratio / 2, h, name='h_centers_linspace')
         w_centers = tf.linspace(w_ratio / 2, input_shape[2] - w_ratio / 2, w, name='w_centers_linspace')
@@ -66,17 +66,17 @@ class ProposalGeneratorLayer(tf.keras.layers.Layer):
         proposals_yxhw = self.convert_yxyx_to_ywhw(proposals_yxyx)
 
         if self.correct_proposals:
-            predictions = tf.reshape(predictions, proposals_yxhw.shape)
+            bbox_deltas = tf.reshape(bbox_deltas, proposals_yxhw.shape)
 
             y1 = proposals_yxhw[:, :, :, 0]
             x1 = proposals_yxhw[:, :, :, 1]
             h1 = proposals_yxhw[:, :, :, 2]
             w1 = proposals_yxhw[:, :, :, 3]
 
-            delta_y = predictions[:, :, :, 0]
-            delta_x = predictions[:, :, :, 1]
-            delta_h = predictions[:, :, :, 2]
-            delta_w = predictions[:, :, :, 3]
+            delta_y = bbox_deltas[:, :, :, 0]
+            delta_x = bbox_deltas[:, :, :, 1]
+            delta_h = bbox_deltas[:, :, :, 2]
+            delta_w = bbox_deltas[:, :, :, 3]
 
             y2 = delta_y * h1 + y1
             x2 = delta_x * w1 + x1
@@ -101,15 +101,16 @@ if __name__ == '__main__':
 
     import numpy as np
 
-    predictions_np = np.zeros((1, 3, 3, 8))
-    predictions_np[0, 0, 0, 1] = 1
+    bbox_deltas_np = np.zeros((1, 3, 3, 8))
+    bbox_deltas_np[0, 0, 0, 1] = 1
 
-    predictions = tf.constant(predictions_np, dtype=tf.float32)
+    bbox_deltas = tf.constant(bbox_deltas_np, dtype=tf.float32)
+
     input_shape = tf.constant([1, 60, 100, 3], dtype=tf.float32)
     anchors = [[100, 100], [20, 20]] #, [7, 7], [10, 10]]
 
     generate_proposal_layer = ProposalGeneratorLayer()
-    proposals = generate_proposal_layer(predictions, input_shape, anchors)
+    proposals = generate_proposal_layer(bbox_deltas, input_shape, anchors)
 
-    # from IPython import embed
-    # embed()
+    from IPython import embed
+    embed()
