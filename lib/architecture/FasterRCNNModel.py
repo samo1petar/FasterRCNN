@@ -4,7 +4,7 @@ from lib.loader_coco.classes import classes
 from typing import List
 
 
-class SSDModel(tf.keras.Model):
+class FasterRCNNModel(tf.keras.Model): # ToDo Max Pool still not implemented
     def __init__(
             self,
             name              : str,
@@ -15,8 +15,8 @@ class SSDModel(tf.keras.Model):
 
         self.feature_extractor = feature_extractor
         self.anchors = anchors
-        self.anchor_cls = Conv(len(anchors), 3, name='anchor_prob_conv')
-        self.bbox_conv = Conv(len(classes) + 4, 3, name='bbox_conv') # TODO separate Conv for cls and bbox
+        self.cls_conv = Conv(len(anchors) * 2, 1, name='rpn_cls_conv')
+        self.bbox_conv = Conv(len(anchors) * 4, 1, name='rpn_bbox_conv')
         self.proposal_generator_layer = ProposalGeneratorLayer()
         self.proposal_selector_layer = ProposalSelectorLayer()
 
@@ -24,14 +24,18 @@ class SSDModel(tf.keras.Model):
 
         x = self.feature_extractor(inputs, training=training)
 
-        features = self.bbox_conv(x)
+        bbox_conv = self.bbox_conv(x)
 
-        anchor_cls = self.anchor_cls(x)
+        cls_conv = self.cls_conv(x)
 
-        proposals, cls_prob = self.proposal_generator_layer(features, inputs.shape, self.anchors)
+        proposals = self.proposal_generator_layer(bbox_conv, inputs.shape, self.anchors)
+
+        from IPython import embed
+        print('Model')
+        embed()
 
         if training:
-            return proposals, cls_prob, anchor_cls
+            return proposals, cls_prob, cls_conv
         else:
             proposals, cls_index, cls_prob = self.proposal_selector_layer(proposals, cls_prob) # TODO check Proposal Selector Layer
             return proposals, cls_index, cls_prob
