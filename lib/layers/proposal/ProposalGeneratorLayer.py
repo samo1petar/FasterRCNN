@@ -1,5 +1,5 @@
 import tensorflow as tf
-from lib.tools.bbox import convert_ywhw_to_yxyx, convert_yxyx_to_ywhw
+from lib.tools.bbox import convert_positional_ywhw_to_yxyx, convert_positional_yxyx_to_ywhw
 
 
 class ProposalGeneratorLayer(tf.keras.layers.Layer):
@@ -44,7 +44,7 @@ class ProposalGeneratorLayer(tf.keras.layers.Layer):
 
         proposals_yxyx = centers + anchor_offsets
 
-        proposals_yxhw = convert_yxyx_to_ywhw(proposals_yxyx)
+        proposals_yxhw = convert_positional_yxyx_to_ywhw(proposals_yxyx)
 
         if self.correct_proposals:
             bbox_deltas = tf.reshape(bbox_deltas, proposals_yxhw.shape)
@@ -67,14 +67,16 @@ class ProposalGeneratorLayer(tf.keras.layers.Layer):
             proposals_yxhw = tf.stack((y2, x2, h2, w2), axis=-1)
 
         if self.clip:
-            proposals_yxyx = convert_ywhw_to_yxyx(proposals_yxhw)
-            proposals_yxyx = tf.clip_by_value(proposals_yxyx, clip_value_min=0, clip_value_max=tf.tile(input_shape[1:3], [2]))
-            proposals_yxhw = convert_yxyx_to_ywhw(proposals_yxyx)
+            proposals_yxyx = convert_positional_ywhw_to_yxyx(proposals_yxhw)
+            proposals_yxyx = tf.clip_by_value(proposals_yxyx,
+                                              clip_value_min=0,
+                                              clip_value_max=tf.cast(tf.tile(input_shape[1:3], [2]), dtype=tf.float32))
+            proposals_yxhw = convert_positional_yxyx_to_ywhw(proposals_yxyx)
 
         if self.format == 'yxhw':
             return proposals_yxhw[tf.newaxis, ...]
         elif self.format == 'yxyx':
-            proposals_yxyx = convert_ywhw_to_yxyx(proposals_yxhw)
+            proposals_yxyx = convert_positional_ywhw_to_yxyx(proposals_yxhw)
             return proposals_yxyx[tf.newaxis, ...]
 
 
