@@ -1,4 +1,5 @@
 import tensorflow as tf
+from lib.tools.bbox import convert_ywhw_to_yxyx, convert_yxyx_to_ywhw
 
 
 class ProposalGeneratorLayer(tf.keras.layers.Layer):
@@ -15,26 +16,6 @@ class ProposalGeneratorLayer(tf.keras.layers.Layer):
         self.correct_proposals = correct_proposals
 
         assert self.format in ['yxhw', 'yxyx'], 'Proposal Generator Layer got wrong format parametr.'
-
-    def convert_ywhw_to_yxyx(self, proposals): # ToDo extract out of this class
-        y = proposals[:, :, :, 0]
-        x = proposals[:, :, :, 1]
-        h = proposals[:, :, :, 2]
-        w = proposals[:, :, :, 3]
-        y1 = y - h / 2
-        x1 = x - w / 2
-        y2 = y + h / 2
-        x2 = x + w / 2
-
-        return tf.stack((y1, x1, y2, x2), axis=3)
-
-    def convert_yxyx_to_ywhw(self, proposals): # ToDo extract out of this class
-        y = (proposals[:, :, :, 0] + proposals[:, :, :, 2]) / 2
-        x = (proposals[:, :, :, 1] + proposals[:, :, :, 3]) / 2
-        h = proposals[:, :, :, 2] - proposals[:, :, :, 0]
-        w = proposals[:, :, :, 3] - proposals[:, :, :, 1]
-
-        return tf.stack((y, x, h, w), axis=-1)
 
     def call(
             self,
@@ -63,7 +44,7 @@ class ProposalGeneratorLayer(tf.keras.layers.Layer):
 
         proposals_yxyx = centers + anchor_offsets
 
-        proposals_yxhw = self.convert_yxyx_to_ywhw(proposals_yxyx)
+        proposals_yxhw = convert_yxyx_to_ywhw(proposals_yxyx)
 
         if self.correct_proposals:
             bbox_deltas = tf.reshape(bbox_deltas, proposals_yxhw.shape)
@@ -86,14 +67,14 @@ class ProposalGeneratorLayer(tf.keras.layers.Layer):
             proposals_yxhw = tf.stack((y2, x2, h2, w2), axis=-1)
 
         if self.clip:
-            proposals_yxyx = self.convert_ywhw_to_yxyx(proposals_yxhw)
+            proposals_yxyx = convert_ywhw_to_yxyx(proposals_yxhw)
             proposals_yxyx = tf.clip_by_value(proposals_yxyx, clip_value_min=0, clip_value_max=tf.tile(input_shape[1:3], [2]))
-            proposals_yxhw = self.convert_yxyx_to_ywhw(proposals_yxyx)
+            proposals_yxhw = convert_yxyx_to_ywhw(proposals_yxyx)
 
         if self.format == 'yxhw':
             return proposals_yxhw[tf.newaxis, ...]
         elif self.format == 'yxyx':
-            proposals_yxyx = self.convert_ywhw_to_yxyx(proposals_yxhw)
+            proposals_yxyx = convert_ywhw_to_yxyx(proposals_yxhw)
             return proposals_yxyx[tf.newaxis, ...]
 
 
