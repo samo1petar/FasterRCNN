@@ -8,7 +8,8 @@ from lib.tools.TrainSupport import TrainSupport
 def train(
         model                 : tf.keras.Model,
         loader                : RecordReader,
-        loss_object           : tf.keras.losses.Loss,
+        loss_cls_object       : tf.keras.losses.Loss,
+        loss_reg_object       : tf.keras.losses.Loss,
         optimizer             : tf.keras.optimizers.Optimizer,
         proposal_target_layer : tf.keras.layers.Layer,
         print_every_iter      : int,
@@ -21,10 +22,13 @@ def train(
 
     train_support = TrainSupport(save_dir=results_dir, name=name)
 
-    train_loss = tf.keras.metrics.Mean(name='train_loss')
+    # train_loss = tf.keras.metrics.Mean(name='train_loss')
     train_print_loss = tf.keras.metrics.Mean(name='train_print_loss')
-    test_loss = tf.keras.metrics.Mean(name='test_loss')
+    # test_loss = tf.keras.metrics.Mean(name='test_loss')
     time_measurement = tf.keras.metrics.Mean(name='time_measurement')
+    positive_bbox_loss = tf.keras.metrics.Mean(name='positive_bbox_loss')
+    positive_cls_loss = tf.keras.metrics.Mean(name='positive_cls_loss')
+    negative_cls_loss = tf.keras.metrics.Mean(name='negative_cls_loss')
 
     iterator_train = loader.read_record('train')
 
@@ -33,24 +37,36 @@ def train(
     file_writer.set_as_default()
     tensorboard = tf.keras.callbacks.TensorBoard(log_dir=logdir)
 
-    # @tf.function
+    @tf.function
     def train_step(image, class_ids, bboxes):
         with tf.GradientTape() as tape:
-            proposals, cls_prob, anchor_prob = model(image, training=True)
-            proposals_index, positive_proposals, positive_cls_prob, positive_gt_proposals, positive_gt_cls, \
-            positive_gt_anchor, positive_anchor_cls, negative_index, negative_cls_prob, negative_gt_cls \
-                = proposal_target_layer(proposals, cls_prob, anchor_prob, bboxes, class_ids)
+            proposals, bbox_pred, cls_prob = model(image, training=True)
+            proposals_index, positive_proposals, positive_cls_prob, positive_gt_proposals, positive_gt_cls_prob, _, \
+            negative_cls_prob, negative_gt_cls_prob, proposal_deltas \
+                = proposal_target_layer(proposals, model.anchors, bboxes, cls_prob)
 
-            positive_anchor_loss = loss_object(positive_anchor_cls, positive_gt_anchor)
+            bbox_pred = tf.reshape(bbox_pred, (tf.shape(bbox_pred)[0], tf.shape(bbox_pred)[1], tf.shape(bbox_pred)[2], -1, 4))
+            bbox_pred_selected = tf.gather_nd(
+                bbox_pred,
+                tf.concat((proposals_index[:, :3], tf.reshape(proposals_index[:, -1], (-1, 1))), axis=-1)
+            )
 
-            positive_cls_loss = loss_object(positive_cls_prob, positive_gt_cls)
+            positive_proposal_bbox_loss = tf.cast(loss_reg_object(proposal_deltas, bbox_pred_selected), dtype=tf.float16)
 
-            negative_cls_loss = loss_object(negative_cls_prob, negative_gt_cls)
+            positive_proposal_cls_loss = loss_cls_object(positive_gt_cls_prob, positive_cls_prob)
 
-            loss = tf.add(tf.add(positive_anchor_loss, positive_cls_loss), negative_cls_loss)
+            negative_proposal_cls_loss = loss_cls_object(negative_gt_cls_prob, negative_cls_prob)
 
-        from IPython import embed
-        embed()
+            # positive_anchor_loss = loss_object(positive_anchor_cls, positive_gt_anchor)
+            #
+            # positive_cls_loss = loss_object(positive_cls_prob, positive_gt_cls)
+            #
+            # negative_cls_loss = loss_object(negative_cls_prob, negative_gt_cls)
+            #
+
+            loss = tf.add(tf.add(positive_proposal_bbox_loss, positive_proposal_cls_loss), negative_proposal_cls_loss)
+
+
         # print ('Anchor Loss %f\tPositive Cls Loss %f\tNegative Cls Loss %f'.format(
         #     positive_anchor_loss, positive_cls_loss, negative_cls_loss))
 
@@ -62,11 +78,14 @@ def train(
 
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
         train_print_loss(loss)
-        train_loss(loss)
+        positive_bbox_loss(positive_proposal_bbox_loss)
+        positive_cls_loss(positive_proposal_cls_loss)
+        negative_cls_loss(negative_proposal_cls_loss)
+        # train_loss(loss)
 
-    train_loss.reset_states()
+    # train_loss.reset_states()
     train_print_loss.reset_states()
-    test_loss.reset_states()
+    # test_loss.reset_states()
 
     iter = tf.constant(0, dtype=tf.int64)
     while iter < max_iter:
@@ -90,10 +109,15 @@ def train(
         #     test_loss.reset_states()
 
         ########################  ITER  ########################
-        # if iter % print_every_iter == 0:
-        #     print('Iter: {} \tLoss: {} \tTime: {}'.format(iter, train_print_loss.result(), time_measurement.result()))
-        #     train_print_loss.reset_states()
-        #     time_measurement.reset_states()
+        if iter % print_every_iter == 0:
+            print('Iter: {} \tLoss: {:.5f} \tBbox: {:.5f} \t+cls: {:.5f} \t-cls: {:.5f} \tTime: {}'.format(
+                iter, train_print_loss.result(), positive_bbox_loss.result(), positive_cls_loss.result(),
+                negative_cls_loss.result(), time_measurement.result()))
+            train_print_loss.reset_states()
+            positive_bbox_loss.reset_states()
+            positive_cls_loss.reset_states()
+            negative_cls_loss.reset_states()
+            time_measurement.reset_states()
 
         ######################  TRAIN STEP ######################
         index, class_ids, bboxes, image = iterator_train.__next__()

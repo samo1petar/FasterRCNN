@@ -26,9 +26,10 @@ def run():
         train(
             model                 = Definition.model,
             loader                = Definition.reader,
-            loss_object           = Definition.loss,
+            loss_cls_object       = Definition.loss_cls,
+            loss_reg_object       = Definition.loss_reg,
             optimizer             = Definition.optimizer,
-            proposal_target_layer = Definition.proposal_target_layer,
+            proposal_target_layer = Definition.rpn_target_layer,
             print_every_iter      = params['print_every_iter'],
             eval_every_iter       = params['eval_every_iter'],
             max_iter              = params['max_iter'],
