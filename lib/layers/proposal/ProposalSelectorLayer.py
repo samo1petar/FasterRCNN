@@ -13,7 +13,7 @@ class ProposalSelectorLayer(tf.keras.layers.Layer):
 
     def call(self, proposals: tf.Tensor, cls_prob: tf.Tensor) -> tf.Tensor:
 
-        mask = tf.argmax(tf.reshape(cls_prob, (cls_prob.shape[0], cls_prob.shape[1], cls_prob.shape[2], -1, 2)), axis=-1)
+        mask = tf.argmax(tf.reshape(cls_prob, (tf.shape(cls_prob)[0], tf.shape(cls_prob)[1], tf.shape(cls_prob)[2], -1, 2)), axis=-1)
 
         proposals = tf.boolean_mask(proposals, mask)
 
