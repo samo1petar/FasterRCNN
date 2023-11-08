@@ -14,6 +14,6 @@ class SoftmaxCrossEntropy(tf.keras.losses.Loss):
 
         loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
             labels=labels,
-            logits=tf.reshape(prediction, [-1, 1]),
+            logits=prediction,
         ))
         return loss * self._multiplayer
