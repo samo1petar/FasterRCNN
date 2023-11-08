@@ -7,7 +7,8 @@ from lib.layers.GlobalMaxPool import GlobalMaxPool
 from lib.layers.MaxPool import MaxPool
 from lib.layers.proposal.ProposalGeneratorLayer import ProposalGeneratorLayer
 from lib.layers.proposal.ProposalSelectorLayer import ProposalSelectorLayer
-from lib.layers.proposal.ProposalTargetLayer import ProposalTargetLayer
+from lib.layers.proposal.ProposalTargetLayer_old import ProposalTargetLayer
+from lib.layers.proposal.RPNTargetLayer import RPNTargetLayer
 
 __all__ = [
     'Activation',
@@ -20,4 +21,5 @@ __all__ = [
     'ProposalGeneratorLayer',
     'ProposalSelectorLayer',
     'ProposalTargetLayer',
+    'RPNTargetLayer',
 ]
