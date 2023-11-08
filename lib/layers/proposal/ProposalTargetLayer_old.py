@@ -1,5 +1,5 @@
 import tensorflow as tf
-from lib.tools.bbox import iou_tf
+from lib.tools.iou import iou_tf
 
 
 class ProposalTargetLayer(tf.keras.layers.Layer):
@@ -15,7 +15,6 @@ class ProposalTargetLayer(tf.keras.layers.Layer):
         self.iou_threshold = iou_threshold
         self.top_k = top_k
         self.take_positive_N = take_positive_N
-
 
     def call(
             self,
