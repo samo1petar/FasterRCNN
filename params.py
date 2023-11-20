@@ -11,14 +11,14 @@ from lib.optimizer.adam import optimizer_and_learning_rate
 params = {
     'batch_size'       : 1,
     'learning_rate'    : 0.0001,
-    'decay_steps'      : 2000,
+    'decay_steps'      : 10000,
     'decay_rate'       : 0.9,
     'print_every_iter' : 10,
-    'eval_every_iter'  : 1000,
+    'eval_every_iter'  : 500,
     'max_iter'         : 1000000,
     'clip_gradients'   : 2.0,
     'results_dir'      : 'results',
-    'name'             : 'test_on_one_image',
+    'name'             : 'rpn_test_one_image_decay_correction_+-iou_0.9_0.8',
 }
 
 
@@ -44,7 +44,7 @@ class Definition:
     )
 
     feature_extractor = BasicFE(name='basic_feature_extractor')
-    anchors = [[300, 220], [150, 120], [100, 80]]
+    anchors = [[250, 315], [150, 120], [100, 80]]
 
     model = FasterRCNNModel(
         name='Model',

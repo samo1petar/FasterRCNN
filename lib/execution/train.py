@@ -22,7 +22,7 @@ def train(
 
     train_support = TrainSupport(save_dir=results_dir, name=name)
 
-    # train_loss = tf.keras.metrics.Mean(name='train_loss')
+    train_loss = tf.keras.metrics.Mean(name='train_loss')
     train_print_loss = tf.keras.metrics.Mean(name='train_print_loss')
     # test_loss = tf.keras.metrics.Mean(name='test_loss')
     time_measurement = tf.keras.metrics.Mean(name='time_measurement')
@@ -57,18 +57,7 @@ def train(
 
             negative_proposal_cls_loss = loss_cls_object(negative_gt_cls_prob, negative_cls_prob)
 
-            # positive_anchor_loss = loss_object(positive_anchor_cls, positive_gt_anchor)
-            #
-            # positive_cls_loss = loss_object(positive_cls_prob, positive_gt_cls)
-            #
-            # negative_cls_loss = loss_object(negative_cls_prob, negative_gt_cls)
-            #
-
             loss = tf.add(tf.add(positive_proposal_bbox_loss, positive_proposal_cls_loss), negative_proposal_cls_loss)
-
-
-        # print ('Anchor Loss %f\tPositive Cls Loss %f\tNegative Cls Loss %f'.format(
-        #     positive_anchor_loss, positive_cls_loss, negative_cls_loss))
 
         gradients = tape.gradient(loss, model.trainable_variables)
 
@@ -81,36 +70,36 @@ def train(
         positive_bbox_loss(positive_proposal_bbox_loss)
         positive_cls_loss(positive_proposal_cls_loss)
         negative_cls_loss(negative_proposal_cls_loss)
-        # train_loss(loss)
+        train_loss(loss)
 
-    # train_loss.reset_states()
-    train_print_loss.reset_states()
-    # test_loss.reset_states()
+    # train_loss.reset_states() # Question - Is this needed before any entry?
+    # train_print_loss.reset_states() # Question - Is this needed before any entry?
+    # test_loss.reset_states() # Question - Is this needed before any entry?
 
     iter = tf.constant(0, dtype=tf.int64)
     while iter < max_iter:
         iter += 1
 
         # #######################  EVAL  #######################
-        # if iter % eval_every_iter == 0:
-        #     tf.summary.scalar('train_loss', train_loss.result(), iter)
-        #     train_loss.reset_states()
-        #
-        #     model.save_weights(os.path.join(train_support.model_saving_dir, 'model_' + str(iter.numpy())), save_format='tf')
-        #
-        #     train_support.sample_from(model, iterator_train, train_support.sample_train_dir)
-        #     train_support.sample_from(model, loader.read_record('test'), train_support.sample_test_dir)
-        #
-        #     for name, cls, cls_name, image in loader.read_record('test'):
-        #         prediction = model(image, training=False)
-        #         loss = loss_object(cls, prediction)
-        #         test_loss(loss)
-        #     tf.summary.scalar('test_loss', test_loss.result(), iter)
-        #     test_loss.reset_states()
+        if iter % eval_every_iter == 0:
+            tf.summary.scalar('train_loss', train_loss.result(), iter)
+            train_loss.reset_states()
+
+            model.save_weights(os.path.join(train_support.model_saving_dir, 'model_' + str(iter.numpy())), save_format='tf')
+
+            train_support.sample_from(model, iterator_train, train_support.sample_train_dir, save_count=1, N=iter)
+            # train_support.sample_from(model, loader.read_record('test'), train_support.sample_test_dir)
+            #
+            # for name, cls, cls_name, image in loader.read_record('test'):
+            #     prediction = model(image, training=False)
+            #     loss = loss_object(cls, prediction)
+            #     test_loss(loss)
+            # tf.summary.scalar('test_loss', test_loss.result(), iter)
+            # test_loss.reset_states()
 
         ########################  ITER  ########################
         if iter % print_every_iter == 0:
-            print('Iter: {} \tLoss: {:.5f} \tBbox: {:.5f} \t+cls: {:.5f} \t-cls: {:.5f} \tTime: {}'.format(
+            print('Iter: {} \tLoss: {:.8f} \tBbox: {:.8f} \t+cls: {:.8f} \t-cls: {:.8f} \tTime: {}'.format(
                 iter, train_print_loss.result(), positive_bbox_loss.result(), positive_cls_loss.result(),
                 negative_cls_loss.result(), time_measurement.result()))
             train_print_loss.reset_states()

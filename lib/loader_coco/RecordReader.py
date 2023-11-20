@@ -79,8 +79,8 @@ class RecordReader:
             image = image / 255
 
             bboxes = tf.concat(
-                (tf.transpose(bbox_x1), tf.transpose(bbox_y1),
-                 tf.transpose(bbox_x2), tf.transpose(bbox_y2)),
+                (tf.transpose(bbox_y1), tf.transpose(bbox_x1),
+                 tf.transpose(bbox_y2), tf.transpose(bbox_x2)),
                 axis=1,
             )
 

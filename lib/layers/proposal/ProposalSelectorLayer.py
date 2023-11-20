@@ -9,15 +9,30 @@ class ProposalSelectorLayer(tf.keras.layers.Layer):
     ):
         super(ProposalSelectorLayer, self).__init__(name=name)
         self.cls_threshold = cls_threshold
+        self.softmax = tf.keras.layers.Softmax()
 
 
-    def call(self, proposals: tf.Tensor, cls_prob: tf.Tensor) -> tf.Tensor:
+    def call(self, proposals: tf.Tensor, cls_score: tf.Tensor) -> tf.Tensor:
 
-        mask = tf.argmax(tf.reshape(cls_prob, (tf.shape(cls_prob)[0], tf.shape(cls_prob)[1], tf.shape(cls_prob)[2], -1, 2)), axis=-1)
+        proposals_shape = tf.shape(proposals)
 
-        proposals = tf.boolean_mask(proposals, mask)
+        cls_score = tf.reshape(cls_score, (tf.shape(cls_score)[0], tf.shape(cls_score)[1], tf.shape(cls_score)[2], -1, 2))
 
-        return proposals[tf.newaxis, ...]
+        cls_prob = self.softmax(cls_score)
+
+        mask = cls_prob > self.cls_threshold
+
+        mask = mask[:, :, :, :, 0]
+
+        cls_mask = tf.stack((mask, mask), axis=-1)
+
+        cls_prob_positive = tf.reshape(tf.boolean_mask(cls_prob, cls_mask), [proposals_shape[0], -1, 2])[:, :, 0]
+
+        proposal_mask = tf.stack((mask, mask, mask, mask), axis=-1)
+
+        proposals_positive = tf.reshape(tf.boolean_mask(proposals, proposal_mask), [proposals_shape[0], -1, 4])
+
+        return proposals_positive, cls_prob_positive
 
 
 if __name__ == '__main__':

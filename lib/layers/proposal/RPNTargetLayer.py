@@ -7,14 +7,16 @@ from lib.layers.proposal.ProposalGeneratorLayer import ProposalGeneratorLayer
 class RPNTargetLayer(tf.keras.layers.Layer):
     def __init__(
             self,
-            name            : str = 'region_proposal_network_target_layer',
-            iou_threshold   : float = 0.3,
-            top_k           : int = 100,
-            take_positive_N : int = 10,
+            name                   : str = 'region_proposal_network_target_layer',
+            iou_positive_threshold : float = 0.9, # ToDo adjust this up to 0.7, but than need to inject artificial examples
+            iou_negative_threshold : float = 0.8,
+            top_k                  : int = 100,
+            take_positive_N        : int = 1000,
     ):
         super(RPNTargetLayer, self).__init__(name=name)
 
-        self.iou_threshold = iou_threshold
+        self.iou_positive_threshold = iou_positive_threshold
+        self.iou_negative_threshold = iou_negative_threshold
         self.top_k = top_k
         self.take_positive_N = take_positive_N
 
@@ -32,7 +34,7 @@ class RPNTargetLayer(tf.keras.layers.Layer):
 
         a = tf.math.top_k(tf.reshape(iou, [-1]), k=tf.reduce_min((self.top_k, tf.reduce_sum(iou.shape))))
 
-        a_over_threshold_indices = tf.gather_nd(a[1], tf.where(a[0] > self.iou_threshold))
+        a_over_threshold_indices = tf.gather_nd(a[1], tf.where(a[0] > self.iou_positive_threshold))
 
         i = tf.tensor_scatter_nd_update(
             tensor=tf.reshape(tf.zeros_like(iou), [-1]),
@@ -69,7 +71,7 @@ class RPNTargetLayer(tf.keras.layers.Layer):
 
         iou_per_position = tf.reduce_max(iou, axis=[3])
 
-        negative_index = tf.where(iou_per_position < self.iou_threshold)
+        negative_index = tf.where(iou_per_position < self.iou_negative_threshold)
 
         negative_index = tf.random.shuffle(negative_index)[:tf.shape(proposals_index)[0]]
 

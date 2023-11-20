@@ -6,14 +6,12 @@ class ProposalGeneratorLayer(tf.keras.layers.Layer):
     def __init__(
             self,
             clip : bool = True,
-            correct_proposals: bool = True,
             format : str = 'yxhw',
             name : str  = 'proposal_layer',
     ):
         super(ProposalGeneratorLayer, self).__init__(name=name)
         self.clip = clip
         self.format = format # yxhw or yxyx
-        self.correct_proposals = correct_proposals
 
         assert self.format in ['yxhw', 'yxyx'], 'Proposal Generator Layer got wrong format parametr.'
 
@@ -22,6 +20,7 @@ class ProposalGeneratorLayer(tf.keras.layers.Layer):
             bbox_deltas : tf.Tensor,
             input_shape : tf.Tensor,
             anchors     : tf.Tensor,
+            correct_proposals : bool = False,
     ):
         anchors = tf.constant(anchors, dtype=tf.float32)
 
@@ -46,7 +45,7 @@ class ProposalGeneratorLayer(tf.keras.layers.Layer):
 
         proposals_yxhw = convert_positional_yxyx_to_ywhw(proposals_yxyx)
 
-        if self.correct_proposals:
+        if correct_proposals:
             bbox_deltas = tf.reshape(bbox_deltas, proposals_yxhw.shape)
 
             y1 = proposals_yxhw[:, :, :, 0]

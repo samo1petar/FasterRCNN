@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 from os import listdir, mkdir, remove
 from os.path import join
 from shutil import copyfile
@@ -6,8 +7,7 @@ import tensorflow as tf
 from typing import Iterator
 from lib.tools.file import mkdir, choose_one_from_dir
 from lib.tools.time import get_time
-from lib.tools.softmax import softmax
-from lib.tools.plot import save_figure
+from lib.tools.plot import save_detections
 
 
 class TrainSupport:
@@ -38,30 +38,29 @@ class TrainSupport:
         return join(experiment, 'model')
 
     @staticmethod
-    def sample_from(model: tf.keras.Model, iterator : Iterator, save_dir: str, save_count: int = 20):
-        for x in listdir(save_dir):
-            remove(join(save_dir, x))
+    def sample_from(model: tf.keras.Model, iterator : Iterator, save_dir: str, save_count: int = 20, N : int = 0):
+        # for x in listdir(save_dir): # Question - isn't this done automatically when writing new images over existing ones?
+        #     remove(join(save_dir, x))
 
         count = 0
-        for name, cls, cls_name, image in iterator:
+        for index, class_ids, bboxes, image in iterator:
 
-            prediction = model(image)
+            proposals, cls_probs = model(image, training=False)
 
-            prediction = prediction.numpy()
-            name = name.numpy()
-            cls = cls.numpy()
-            cls_name = cls_name.numpy()
+            bboxes = bboxes.numpy()
+            proposals = proposals.numpy()
+            cls_probs = cls_probs.numpy()
             image = image.numpy()
 
-            for x in range(len(cls_name)):
+            image = (image * 255).astype(np.uint8)
+
+            for x in range(image.shape[0]):
                 count += 1
                 if count > save_count:
                     return
 
-                name_ = name[x].decode('utf8')
-                cls_ = cls[x]
-
-                prediction_ = softmax(prediction[x])
-                image_ = image[x]
-
-                save_figure(image_, cls_, prediction_, name_, join(save_dir, name_ + '.png'))
+                if N > 0:
+                    save_path = join(save_dir, f'rpn_{N}.png')
+                else:
+                    save_path = join(save_dir, 'rpn.png')
+                save_detections(image[x], bboxes, proposals[x], 'rpn', save_path)

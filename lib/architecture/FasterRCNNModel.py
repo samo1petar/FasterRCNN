@@ -18,9 +18,8 @@ class FasterRCNNModel(tf.keras.Model): # ToDo Max Pool still not implemented
         self.anchors = anchors
         self.cls_conv = Conv(len(anchors) * 2, 1, name='rpn_cls_conv')
         self.bbox_conv = Conv(len(anchors) * 4, 1, name='rpn_bbox_conv')
-        self.proposal_generator_layer = ProposalGeneratorLayer(correct_proposals=False, clip=True, format='yxyx')
+        self.proposal_generator_layer = ProposalGeneratorLayer(clip=True, format='yxyx')
         self.proposal_selector_layer = ProposalSelectorLayer()
-        self.softmax = tf.keras.layers.Softmax()
 
     def call(self, inputs: tf.Tensor, training: bool = False):
 
@@ -30,14 +29,14 @@ class FasterRCNNModel(tf.keras.Model): # ToDo Max Pool still not implemented
 
         cls_conv = self.cls_conv(x)
 
-        # cls_conv = self.softmax(cls_conv)
+        if training:
+            proposals = self.proposal_generator_layer(bbox_conv, inputs.shape, self.anchors, correct_proposals=False)
 
-        proposals = self.proposal_generator_layer(bbox_conv, inputs.shape, self.anchors)
+        if not training:
+            proposals = self.proposal_generator_layer(bbox_conv, inputs.shape, self.anchors, correct_proposals=True)
+            proposals = self.proposal_selector_layer(proposals, cls_conv)
 
-        # proposals = self.proposal_selector_layer(proposals, cls_conv)
-
-        # if training:
-            # ToDo - also return bbox_conv and cls_conv because those need to be trained
+            return proposals
 
         # ToDO continue
 
