@@ -34,9 +34,9 @@ class FasterRCNNModel(tf.keras.Model): # ToDo Max Pool still not implemented
 
         if not training:
             proposals = self.proposal_generator_layer(bbox_conv, inputs.shape, self.anchors, correct_proposals=True)
-            proposals = self.proposal_selector_layer(proposals, cls_conv)
+            proposals, cls = self.proposal_selector_layer(proposals, cls_conv)
 
-            return proposals
+            return proposals, cls
 
         # ToDO continue
 
