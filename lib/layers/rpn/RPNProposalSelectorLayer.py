@@ -1,17 +1,17 @@
 import tensorflow as tf
 
 
-class ProposalSelectorLayer(tf.keras.layers.Layer):
+class RPNProposalSelectorLayer(tf.keras.layers.Layer):
     def __init__(
             self,
             name          : str   = 'select_proposal_layer',
             cls_threshold : float = 0.7,
     ):
-        super(ProposalSelectorLayer, self).__init__(name=name)
+        super(RPNProposalSelectorLayer, self).__init__(name=name)
         self.cls_threshold = cls_threshold
         self.softmax = tf.keras.layers.Softmax()
         self.nms_threshold = 0.5
-        self.nms_max_outputs = 5
+        self.nms_max_outputs = 100
 
 
     def call(self, proposals: tf.Tensor, cls_score: tf.Tensor) -> tf.Tensor:
@@ -34,6 +34,7 @@ class ProposalSelectorLayer(tf.keras.layers.Layer):
 
         proposals_positive = tf.reshape(tf.boolean_mask(proposals, proposal_mask), [proposals_shape[0], -1, 4])
 
+        # NMS
         selected_indices = tf.image.non_max_suppression(
             tf.reshape(proposals_positive, [-1, 4]), tf.reshape(cls_prob_positive, [-1]),
             self.nms_max_outputs,
@@ -43,6 +44,7 @@ class ProposalSelectorLayer(tf.keras.layers.Layer):
 
         # ToDo NMS step implemented in this way supports only batch = 1. Create a loop over batches.
         # ToDo https://stackoverflow.com/questions/35330117/how-can-i-run-a-loop-with-a-tensor-as-its-range-in-tensorflow
+        # ToDo take a look at example three at https://www.tensorflow.org/versions/r2.3/api_docs/python/tf/while_loop
 
         selected_boxes = tf.reshape(selected_boxes, [1, -1, 4])
         selected_cls = tf.reshape(selected_cls, [1, -1])
@@ -69,7 +71,7 @@ if __name__ == '__main__':
     cls_deltas_np = np.random.random((1, 3, 3, 4))
     cls_deltas = tf.constant(cls_deltas_np, dtype=tf.float32)
 
-    proposal_selector_layer = ProposalSelectorLayer()
+    proposal_selector_layer = RPNProposalSelectorLayer()
     selected_proposals = proposal_selector_layer(proposals, cls_deltas)
 
     from IPython import embed

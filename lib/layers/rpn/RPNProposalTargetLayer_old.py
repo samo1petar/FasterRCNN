@@ -2,7 +2,7 @@ import tensorflow as tf
 from lib.tools.iou import iou_tf
 
 
-class ProposalTargetLayer(tf.keras.layers.Layer):
+class RPNProposalTargetLayer_old(tf.keras.layers.Layer):
     def __init__(
             self,
             name            : str = 'target_proposal_layer',
@@ -10,7 +10,7 @@ class ProposalTargetLayer(tf.keras.layers.Layer):
             top_k           : int = 100,
             take_positive_N : int = 10,
     ):
-        super(ProposalTargetLayer, self).__init__(name=name)
+        super(RPNProposalTargetLayer_old, self).__init__(name=name)
 
         self.iou_threshold = iou_threshold
         self.top_k = top_k

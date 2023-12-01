@@ -2,14 +2,14 @@ import tensorflow as tf
 from lib.tools.bbox import convert_positional_ywhw_to_yxyx, convert_positional_yxyx_to_ywhw
 
 
-class ProposalGeneratorLayer(tf.keras.layers.Layer):
+class RPNProposalGeneratorLayer(tf.keras.layers.Layer):
     def __init__(
             self,
             clip : bool = True,
             format : str = 'yxhw',
             name : str  = 'proposal_layer',
     ):
-        super(ProposalGeneratorLayer, self).__init__(name=name)
+        super(RPNProposalGeneratorLayer, self).__init__(name=name)
         self.clip = clip
         self.format = format # yxhw or yxyx
 
@@ -91,7 +91,7 @@ if __name__ == '__main__':
     input_shape = tf.constant([1, 60, 100, 3], dtype=tf.float32)
     anchors = [[100, 100], [20, 20]] #, [7, 7], [10, 10]]
 
-    generate_proposal_layer = ProposalGeneratorLayer()
+    generate_proposal_layer = RPNProposalGeneratorLayer()
     proposals = generate_proposal_layer(bbox_deltas, input_shape, anchors)
 
     from IPython import embed
