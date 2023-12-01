@@ -9,7 +9,7 @@ from lib.optimizer.adam import optimizer_and_learning_rate
 
 
 params = {
-    'batch_size'       : 1,
+    'batch_size'       : 1, # Must be one. NMS, ROI Pooling don't work well otherwise because part of tensor would be empty
     'learning_rate'    : 0.0001,
     'decay_steps'      : 10000,
     'decay_rate'       : 0.9,
@@ -18,7 +18,7 @@ params = {
     'max_iter'         : 1000000,
     'clip_gradients'   : 2.0,
     'results_dir'      : 'results',
-    'name'             : 'rpn_test_one_image_decay_correction_+-iou_0.9_0.8',
+    'name'             : 'RCNN_test',
 }
 
 

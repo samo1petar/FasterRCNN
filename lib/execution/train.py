@@ -37,7 +37,7 @@ def train(
     file_writer.set_as_default()
     tensorboard = tf.keras.callbacks.TensorBoard(log_dir=logdir)
 
-    @tf.function
+    # @tf.function
     def train_step(image, class_ids, bboxes):
         with tf.GradientTape() as tape:
             proposals, bbox_pred, cls_prob = model(image, training=True)

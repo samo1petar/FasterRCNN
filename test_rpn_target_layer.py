@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from lib.layers import ProposalGeneratorLayer
+from lib.layers import RPNProposalGeneratorLayer
 from lib.layers import RPNTargetLayer
 
 if __name__ == '__main__':
@@ -14,7 +14,7 @@ if __name__ == '__main__':
     input_shape = tf.constant([1, 60, 100, 3], dtype=tf.float32)
     anchors = [[100, 100], [20, 20]] #, [7, 7], [10, 10]]
 
-    generate_proposal_layer = ProposalGeneratorLayer(clip=False, format='yxyx')
+    generate_proposal_layer = RPNProposalGeneratorLayer(clip=False, format='yxyx')
     proposals = generate_proposal_layer(bbox_deltas, input_shape, anchors, correct_proposals=False)
 
     gt_bboxes = tf.constant(
