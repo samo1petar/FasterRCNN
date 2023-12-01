@@ -1,28 +1,35 @@
 import tensorflow as tf
-from lib.tools.bbox import convert_from_percentage_to_exact, convert_yxhw_to_yxyx
+from lib.tools.bbox import convert_from_percentage_to_exact, convert_yxhw_to_yxyx, convert_yxyx_to_yxhw
 from typing import Tuple
 
 
 class ProposalSelectorLayer(tf.keras.layers.Layer):
     def __init__(
             self,
-            name          : str   = 'select_proposal_layer',
-            cls_threshold : float = 0.7,
+            name               : str   = 'select_proposal_layer',
+            cls_threshold      : float = 0.7,
+            nms_threshold      : float = 0.5,
+            nms_max_outputs    : int = 100,
+            min_size_threshold : int = 3,
+            clip               : bool = True,
     ):
         super(ProposalSelectorLayer, self).__init__(name=name)
         self.cls_threshold = cls_threshold
+        self.nms_threshold = nms_threshold
+        self.nms_max_outputs = nms_max_outputs
+        self.min_size_threshold = min_size_threshold
+        self.clip = clip
         self.softmax = tf.keras.layers.Softmax()
-        self.nms_threshold = 0.5
-        self.nms_max_outputs = 100
 
 
     def call(
             self,
-            proposals: tf.Tensor,
-            bbox_deltas: tf.Tensor,
-            cls_score: tf.Tensor,
-            input_image_shape : Tuple[int],
-            correct_proposals: bool = True,
+            proposals              : tf.Tensor,
+            bbox_deltas            : tf.Tensor,
+            cls_score              : tf.Tensor,
+            input_image_shape      : Tuple[int],
+            remove_small_proposals : bool = True,
+            correct_proposals      : bool = True,
     ) -> tf.Tensor:
 
         cls_score_max_index = tf.reshape(tf.argmax(cls_score, axis=2), (-1, 1))
@@ -64,32 +71,36 @@ class ProposalSelectorLayer(tf.keras.layers.Layer):
             w2 = (delta_w + 1) * w1
 
             proposals = tf.stack((y2, x2, h2, w2), axis=-1)
-            proposals = convert_positional_ywhw_to_yxyx(proposals)
+            proposals = convert_yxhw_to_yxyx(proposals)
 
         if self.clip:
             proposals = tf.clip_by_value(proposals,
                                          clip_value_min=0,
-                                         clip_value_max=tf.cast(tf.tile(input_shape[1:3], [2]), dtype=tf.float32))
+                                         clip_value_max=tf.cast(tf.tile(input_image_shape[1:3], [2]), dtype=tf.float32))
 
-        print('ProposalSelectorLayer')
-        from IPython import embed
-        embed()
+        if remove_small_proposals:
+            proposals_yxhw = convert_yxyx_to_yxhw(proposals)
 
-        exit()
+            mask_h = proposals_yxhw[:, 2] > self.min_size_threshold
+            mask_w = proposals_yxhw[:, 3] > self.min_size_threshold
 
-        # # NMS - Not used yet
+            mask = tf.logical_and(mask_h, mask_w)
+
+            proposals = tf.boolean_mask(proposals, mask)
+            max_scores = tf.boolean_mask(max_scores, mask)
+            cls_indexes = tf.boolean_mask(cls_indexes, mask)
+
+        # # NMS
         selected_indices = tf.image.non_max_suppression(
             proposals, max_scores,
             self.nms_max_outputs,
             self.nms_threshold)
-        selected_boxes = tf.gather(proposals, selected_indices)
-        selected_cls = tf.gather(tf.reshape(cls_prob_positive, [-1]), selected_indices) # ToDo
-        #
-        # # ToDo NMS step implemented in this way supports only batch = 1. Create a loop over batches.
-        # # ToDo https://stackoverflow.com/questions/35330117/how-can-i-run-a-loop-with-a-tensor-as-its-range-in-tensorflow
-        # # ToDo take a look at example three at https://www.tensorflow.org/versions/r2.3/api_docs/python/tf/while_loop
-        #
-        # selected_boxes = tf.reshape(selected_boxes, [1, -1, 4])
-        # selected_cls = tf.reshape(selected_cls, [1, -1])
-        #
-        # return selected_boxes, selected_cls
+        proposals = tf.gather(proposals, selected_indices)
+        max_scores = tf.gather(max_scores, selected_indices)
+        cls_indexes = tf.gather(cls_indexes, selected_indices)
+
+        # ToDo NMS step implemented in this way supports only batch = 1. Create a loop over batches.
+        # ToDo https://stackoverflow.com/questions/35330117/how-can-i-run-a-loop-with-a-tensor-as-its-range-in-tensorflow
+        # ToDo take a look at example three at https://www.tensorflow.org/versions/r2.3/api_docs/python/tf/while_loop
+
+        return proposals[tf.newaxis, ...], max_scores[tf.newaxis, ...], cls_indexes[tf.newaxis, ...]

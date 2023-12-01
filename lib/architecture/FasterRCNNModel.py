@@ -61,12 +61,12 @@ class FasterRCNNModel(tf.keras.Model):
             cls_prob = self.cls_fc(fc_2_out) # ToDo rename
             bbox_delt = self.bbox_fc(fc_2_out) # ToDo rename
 
-            # print('Model')
-            # from IPython import embed
-            # embed()
-            # exit()
+            rcnn_proposals, rcnn_scores, rcnn_classes = self.rcnn_proposal_selector_layer(selected_proposals, bbox_delt, cls_prob, inputs.shape)
 
-            self.rcnn_proposal_selector_layer(selected_proposals, bbox_delt, cls_prob, inputs.shape)
+            print('Model')
+            from IPython import embed
+            embed()
+            exit()
 
             return uncorrected_proposals, bbox_conv, cls_conv
 
