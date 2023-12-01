@@ -3,10 +3,10 @@ from lib.tools.bbox import convert_from_percentage_to_exact, convert_yxhw_to_yxy
 from typing import Tuple
 
 
-class ProposalSelectorLayer(tf.keras.layers.Layer):
+class ProposalSelectorLayer(tf.keras.layers.Layer): # ToDo change names
     def __init__(
             self,
-            name               : str   = 'select_proposal_layer',
+            name               : str   = 'final_proposal_selector_layer',
             cls_threshold      : float = 0.7,
             nms_threshold      : float = 0.5,
             nms_max_outputs    : int = 100,
