@@ -5,10 +5,13 @@ from lib.layers.FullyConnected import FullyConnected
 from lib.layers.GlobalAvgPool import GlobalAvgPool
 from lib.layers.GlobalMaxPool import GlobalMaxPool
 from lib.layers.MaxPool import MaxPool
-from lib.layers.proposal.ProposalGeneratorLayer import ProposalGeneratorLayer
-from lib.layers.proposal.ProposalSelectorLayer import ProposalSelectorLayer
-from lib.layers.proposal.ProposalTargetLayer_old import ProposalTargetLayer
-from lib.layers.proposal.RPNTargetLayer import RPNTargetLayer
+from lib.layers.rcnn.ProposalSelectorLayer import ProposalSelectorLayer
+from lib.layers.rcnn.ProposalTargetLayer import RCNNTargetLayer
+from lib.layers.rpn.RPNProposalGeneratorLayer import RPNProposalGeneratorLayer
+from lib.layers.rpn.RPNProposalSelectorLayer import RPNProposalSelectorLayer
+from lib.layers.rpn.RPNProposalTargetLayer_old import RPNProposalTargetLayer_old
+from lib.layers.rpn.RPNTargetLayer import RPNTargetLayer
+from lib.layers.ROIMaxPool import ROIMaxPool
 
 __all__ = [
     'Activation',
@@ -18,8 +21,11 @@ __all__ = [
     'GlobalAvgPool',
     'GlobalMaxPool',
     'MaxPool',
-    'ProposalGeneratorLayer',
     'ProposalSelectorLayer',
-    'ProposalTargetLayer',
+    'RCNNTargetLayer',
+    'RPNProposalGeneratorLayer',
+    'RPNProposalSelectorLayer',
+    'RPNProposalTargetLayer_old',
     'RPNTargetLayer',
+    'ROIMaxPool',
 ]

@@ -1,7 +1,6 @@
 import tensorflow as tf
 from lib.tools.iou import iou_tf
 from lib.tools.bbox import convert_yxyx_to_yxhw, convert_yxhw_to_yxyx
-from lib.layers.proposal.RPNProposalGeneratorLayer import ProposalGeneratorLayer
 
 
 class RPNTargetLayer(tf.keras.layers.Layer):
