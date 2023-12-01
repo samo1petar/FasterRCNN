@@ -46,12 +46,14 @@ class RPNProposalGeneratorLayer(tf.keras.layers.Layer):
         proposals_yxhw = convert_positional_yxyx_to_ywhw(proposals_yxyx)
 
         if correct_proposals:
-            bbox_deltas = tf.reshape(bbox_deltas, proposals_yxhw.shape)
 
             y1 = proposals_yxhw[:, :, :, 0]
             x1 = proposals_yxhw[:, :, :, 1]
             h1 = proposals_yxhw[:, :, :, 2]
             w1 = proposals_yxhw[:, :, :, 3]
+
+            bbox_deltas = tf.reshape(bbox_deltas, proposals_yxhw.shape)
+            bbox_deltas = tf.math.tanh(bbox_deltas)
 
             delta_y = bbox_deltas[:, :, :, 0]
             delta_x = bbox_deltas[:, :, :, 1]
