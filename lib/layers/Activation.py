@@ -10,6 +10,7 @@ class Activation(tf.keras.layers.Layer):
             'linear'  : tf.keras.activations.linear,
             'softmax' : tf.keras.activations.softmax,
             'sigmoid' : tf.keras.activations.sigmoid,
+            'tanh'    : tf.keras.activations.tanh,
         }
         assert activation in self.activation_dict
         self.activation = self.activation_dict[activation]
