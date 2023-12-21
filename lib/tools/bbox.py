@@ -4,7 +4,7 @@ import tensorflow as tf
 def convert_from_exact_to_percentage(proposals, input_image_shape):
     """
     proposals -> [Batch, N, 4]
-    input_image_shape -> [3] -> [Batch, Height, Width, Channels]
+    input_image_shape -> [4] -> [Batch, Height, Width, Channels]
     """
     return proposals / tf.constant([input_image_shape[1], input_image_shape[2],
                                     input_image_shape[1], input_image_shape[2]], dtype=tf.float32)
@@ -13,7 +13,7 @@ def convert_from_exact_to_percentage(proposals, input_image_shape):
 def convert_from_percentage_to_exact(proposals, input_image_shape):
     """
     proposals -> [Batch, N, 4]
-    input_image_shape -> [3] -> [Batch, Height, Width, Channels]
+    input_image_shape -> [4] -> [Batch, Height, Width, Channels]
     """
     return proposals * tf.constant([input_image_shape[1], input_image_shape[2],
                                     input_image_shape[1], input_image_shape[2]], dtype=tf.float32)

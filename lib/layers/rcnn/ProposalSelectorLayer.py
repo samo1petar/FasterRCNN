@@ -50,7 +50,7 @@ class ProposalSelectorLayer(tf.keras.layers.Layer): # ToDo change names
 
         cls_indexes = tf.boolean_mask(cls_score_max_index, mask)
 
-        proposals = convert_from_percentage_to_exact(proposals, input_image_shape)
+        # proposals = convert_from_percentage_to_exact(proposals, input_image_shape)
 
         if correct_proposals:
             y1 = proposals[:, 0]

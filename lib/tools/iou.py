@@ -34,6 +34,35 @@ def iou_np_single(bbox: np.ndarray, bboxes: np.ndarray) -> np.ndarray:
     return iou
 
 
+def iou_tf_multiple(bboxes1: tf.Tensor, bboxes2: tf.Tensor) -> tf.Tensor:
+    '''
+    :param bboxes1: [N, 4]
+    :param bboxes2: [M, 4]
+    :return: [N, M]
+    '''
+
+    bboxes1_repeated = tf.reshape(tf.tile(bboxes1, [1, bboxes2.shape[0]]), (-1, 4))
+    bboxes2_repeated = tf.tile(bboxes2, [bboxes1.shape[0], 1])
+
+    first_points_mask = bboxes1_repeated[:, :2] >= bboxes2_repeated[:, :2]
+    second_points_mask = bboxes1_repeated[:, 2:] <= bboxes2_repeated[:, 2:]
+
+    mask = tf.concat((first_points_mask, second_points_mask), axis=1)
+
+    mid_bboxes = bboxes1_repeated * tf.cast(mask, bboxes1_repeated.dtype) + bboxes2_repeated * tf.cast(tf.logical_not(mask), bboxes2_repeated.dtype)
+
+    no_intersection_mask = tf.logical_or(mid_bboxes[:, 0] > mid_bboxes[:, 2], mid_bboxes[:, 1] > mid_bboxes[:, 3])
+
+    mid_bboxes_area = (mid_bboxes[:, 2] - mid_bboxes[:, 0]) * (mid_bboxes[:, 3] - mid_bboxes[:, 1])
+    bbox_area = (bboxes1_repeated[:, 2] - bboxes1_repeated[:, 0]) * (bboxes1_repeated[:, 3] - bboxes1_repeated[:, 1])
+    bboxes_area = (bboxes2_repeated[:, 2] - bboxes2_repeated[:, 0]) * (bboxes2_repeated[:, 3] - bboxes2_repeated[:, 1])
+
+    iou = mid_bboxes_area / (bbox_area + bboxes_area - mid_bboxes_area)
+    iou = iou * tf.cast(tf.logical_not(no_intersection_mask), iou.dtype)
+
+    return tf.reshape(iou, [bboxes1.shape[0], bboxes2.shape[0]])
+
+
 def iou_tf_single(bbox: tf.Tensor, bboxes: tf.Tensor) -> tf.Tensor:
     '''
     :param bbox: [4]

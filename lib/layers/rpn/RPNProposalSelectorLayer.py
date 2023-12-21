@@ -14,7 +14,7 @@ class RPNProposalSelectorLayer(tf.keras.layers.Layer):
         self.softmax = tf.keras.layers.Softmax()
         self.nms_threshold = 0.7 # ToDo extract
         self.nms_max_outputs = 100 # ToDo extract
-        self.min_size_threshold = 3
+        self.min_size_threshold = 50
 
 
     def call(
@@ -58,6 +58,10 @@ class RPNProposalSelectorLayer(tf.keras.layers.Layer):
 
         if remove_small_proposals:
             selected_boxes_yxhw = convert_yxyx_to_yxhw(selected_boxes)
+
+            # print('Proposal Selector Layer')
+            # from IPython import embed
+            # embed()
 
             mask_h = selected_boxes_yxhw[:, 2] > self.min_size_threshold
             mask_w = selected_boxes_yxhw[:, 3] > self.min_size_threshold

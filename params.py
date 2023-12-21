@@ -1,6 +1,6 @@
 from lib.architecture.FasterRCNNModel import FasterRCNNModel
 from lib.feature_extractor.basic_feature_extractor import BasicFE
-from lib.layers import RPNTargetLayer
+from lib.layers import RPNTargetLayer, RCNNTargetLayer
 from lib.loader_coco.RecordReader import RecordReader
 from lib.loader_coco.RecordWriter import RecordWriter
 from lib.loss.softmax_cross_entropy import SoftmaxCrossEntropy
@@ -53,6 +53,7 @@ class Definition:
     )
 
     rpn_target_layer = RPNTargetLayer()
+    fp_target_layer = RCNNTargetLayer()
 
     loss_cls = SoftmaxCrossEntropy()
     loss_reg = MeanSquaredError()

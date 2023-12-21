@@ -1,14 +1,15 @@
 import tensorflow as tf
-from lib.tools.iou import iou_tf
+from lib.tools.iou import iou_tf_multiple
 from lib.tools.bbox import convert_yxyx_to_yxhw, convert_yxhw_to_yxyx
+from lib.loader_coco.classes import classes
 
 
-class RCNNTargetLayer(tf.keras.layers.Layer):
+class RCNNTargetLayer(tf.keras.layers.Layer): # ToDo Adjust names
     def __init__(
             self,
-            name                   : str = 'region_proposal_network_target_layer',
-            iou_positive_threshold : float = 0.9, # ToDo adjust this up to 0.7, but than need to inject artificial examples
-            iou_negative_threshold : float = 0.8,
+            name                   : str = 'final_proposal_target_layer',
+            iou_positive_threshold : float = 0.4,
+            iou_negative_threshold : float = 0.3,
             top_k                  : int = 100,
             take_positive_N        : int = 1000,
     ):
@@ -23,11 +24,12 @@ class RCNNTargetLayer(tf.keras.layers.Layer):
             self,
             proposals    : tf.Tensor,
             anchors      : tf.Tensor,
+            gt_classes   : tf.Tensor,
             gt_proposals : tf.Tensor,
             cls_prob     : tf.Tensor,
     ) -> tf.Tensor:
 
-        iou = iou_tf(proposals, gt_proposals)
+        iou = iou_tf_multiple(proposals[0], gt_proposals)
 
         ########################## POSITIVE EXAMPLES ##########################
 
@@ -46,41 +48,23 @@ class RCNNTargetLayer(tf.keras.layers.Layer):
 
         proposals_index = tf.random.shuffle(proposals_index)[:self.take_positive_N]
 
-        positive_proposals = tf.gather_nd(
-            proposals,
-            tf.concat((proposals_index[:, :3], tf.reshape(proposals_index[:, -1], (-1, 1))), axis=-1)
-        )
+        positive_proposals = tf.gather_nd(proposals[0], tf.reshape(proposals_index[:, 0], [-1, 1]))
 
-        cls_prob = tf.reshape(cls_prob, (tf.shape(cls_prob)[0], tf.shape(cls_prob)[1], tf.shape(cls_prob)[2], -1, 2))
+        positive_cls_prob = tf.gather_nd(cls_prob[0], tf.reshape(proposals_index[:, 0], [-1, 1]))
 
-        positive_cls_prob = tf.gather_nd(
-            cls_prob,
-            tf.concat((proposals_index[:, :3], tf.reshape(proposals_index[:, -1], (-1, 1))), axis=-1)
-        )
+        positive_gt_proposals = tf.gather(gt_proposals, proposals_index[:, 1])
 
-        positive_gt_proposals = tf.gather(gt_proposals, proposals_index[:, 3])
-
-        positive_gt_cls_prob = tf.stack((
-            tf.ones(tf.shape(positive_cls_prob)[0]),
-            tf.zeros(tf.shape(positive_cls_prob)[0])),
-            axis=-1,
-        )
+        positive_gt_cls_prob = tf.one_hot(tf.gather_nd(gt_classes, tf.reshape(proposals_index[:, 1], [-1, 1])), len(classes))
 
         ########################## NEGATIVE EXAMPLES ##########################
 
-        iou_per_position = tf.reduce_max(iou, axis=[3])
-
-        negative_index = tf.where(iou_per_position < self.iou_negative_threshold)
+        negative_index = tf.where(iou < self.iou_negative_threshold)
 
         negative_index = tf.random.shuffle(negative_index)[:tf.shape(proposals_index)[0]]
 
-        negative_cls_prob = tf.gather_nd(cls_prob, negative_index)
+        negative_cls_prob = tf.gather_nd(cls_prob[0], tf.reshape(negative_index[:, 0], [-1, 1]))
 
-        negative_gt_cls_prob = tf.stack((
-            tf.zeros(tf.shape(negative_cls_prob)[0]),
-            tf.ones(tf.shape(negative_cls_prob)[0])),
-            axis=-1,
-        )
+        negative_gt_cls_prob = tf.one_hot(tf.tile([len(classes)-1], [negative_cls_prob.shape[0]]), len(classes))
 
         ########################## CALCULATE DELTAS ##########################
 
@@ -89,7 +73,7 @@ class RCNNTargetLayer(tf.keras.layers.Layer):
 
         proposal_deltas = self.calculate_proposals_deltas(positive_proposals_yxhw, positive_gt_proposals_yxhw)
 
-        return proposals_index, positive_proposals_yxhw, positive_cls_prob, positive_gt_proposals_yxhw, positive_gt_cls_prob,\
+        return proposals_index, positive_proposals, positive_cls_prob, positive_gt_proposals, positive_gt_cls_prob,\
                negative_index, negative_cls_prob, negative_gt_cls_prob, proposal_deltas
 
     def calculate_proposals_deltas(self, proposals_yxhw, gt_proposals_yxhw):
